@@ -1,7 +1,11 @@
-package com.example.demo;
+package com.example.demo.controllers;
+
+import com.example.demo.models.Equipo;
+import com.example.demo.services.EquipoService;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -33,13 +37,13 @@ public class EquipoController {
     }
     @Operation(
             summary = "Obtener equipos disponibles",
-            description = "Devuelve una lista de los equipos disponibles.")
+            description = "Devuelve una lista de los equipos con estado 'disponible'.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Lista de equipos disponibles obtenida correctamente")
     })
     @GetMapping("/disponibles")
     public ResponseEntity<List<Equipo>> getDisponibles() {
-        List<Equipo> equipos = equipoService.findByDisponible(true);
+        List<Equipo> equipos = equipoService.findByEstado("disponible");
         return new ResponseEntity<>(equipos, HttpStatus.OK);
     }
     @Operation(
@@ -51,7 +55,7 @@ public class EquipoController {
     })
     @GetMapping("/{id}")
     public ResponseEntity<Equipo> getEquipoById(
-            @PathVariable String id
+            @PathVariable Integer id
     ) {
         Equipo equipo = equipoService.findById(id);
         if (equipo != null) {
@@ -62,7 +66,7 @@ public class EquipoController {
     }
     @Operation(
             summary = "Buscar equipos",
-            description = "Busca equipos por nombre, categoría y disponibilidad.")
+            description = "Busca equipos por nombre, marca, estado y categoría.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Búsqueda realizada correctamente")
     })
@@ -71,10 +75,12 @@ public class EquipoController {
             @Parameter(
                     description = "Nombre del equipo (parcial o completo)")
             @RequestParam(required = false) String nombre,
-            @Parameter(description = "Categoría del equipo (opcional)")
-            @RequestParam(required = false) String categoria,
-            @Parameter(description = "Disponibilidad del equipo (true o false)")
-            @RequestParam(required = false) Boolean disponible
+            @Parameter(description = "Marca del equipo (opcional)")
+            @RequestParam(required = false) String marca,
+            @Parameter(description = "Estado del equipo: disponible o prestado (opcional)")
+            @RequestParam(required = false) String estado,
+            @Parameter(description = "Identificador de la categoría (opcional)")
+            @RequestParam(required = false) Integer idCategoria
     ) {
         List<Equipo> equipos = equipoService.findAll();
         List<Equipo> resultados = equipos.stream()
@@ -82,11 +88,14 @@ public class EquipoController {
                         (e.getNombre() != null &&
                                 e.getNombre().toLowerCase()
                                         .contains(nombre.toLowerCase())))
-                .filter(e -> categoria == null ||
-                        (e.getCategoria() != null &&
-                                e.getCategoria().equalsIgnoreCase(categoria)))
-                .filter(e -> disponible == null ||
-                        e.isDisponible() == disponible)
+                .filter(e -> marca == null ||
+                        (e.getMarca() != null &&
+                                e.getMarca().equalsIgnoreCase(marca)))
+                .filter(e -> estado == null ||
+                        (e.getEstado() != null &&
+                                e.getEstado().equalsIgnoreCase(estado)))
+                .filter(e -> idCategoria == null ||
+                        Objects.equals(e.getIdCategoria(), idCategoria))
                 .toList();
 
         return ResponseEntity.ok(resultados);
@@ -109,7 +118,7 @@ public class EquipoController {
             @ApiResponse(responseCode = "404", description = "Equipo no encontrado")
     })
     @PutMapping("/{id}")
-    public ResponseEntity<Equipo> updateEquipo( @PathVariable String id, @RequestBody Equipo equipo
+    public ResponseEntity<Equipo> updateEquipo( @PathVariable Integer id, @RequestBody Equipo equipo
     ) {
         Equipo existingEquipo = equipoService.findById(id);
         if (existingEquipo != null) {
@@ -123,11 +132,11 @@ public class EquipoController {
     @Operation(summary = "Modificar parcialmente un equipo", description = "Actualiza algunos campos de un equipo existente.")
     @ApiResponses(value = {
             @ApiResponse( responseCode = "200", description = "Equipo modificado correctamente"),
-            @ApiResponse( responseCode = "404", description = "Equipo no encontrado")
+            @ApiResponse(responseCode = "404", description = "Equipo no encontrado")
     })
     @PatchMapping("/{id}")
     public ResponseEntity<Equipo> patchUpdateEquipo(
-            @PathVariable String id,
+            @PathVariable Integer id,
             @RequestBody Map<String, Object> updates
     ) {
         Equipo updatedEquipo = equipoService.patch(id, updates);
@@ -139,12 +148,12 @@ public class EquipoController {
     }
     @Operation(summary = "Eliminar equipo", description = "Elimina un equipo mediante su identificador.")
     @ApiResponses(value = {
-            @ApiResponse( responseCode = "204", description = "Equipo eliminado correctamente"),
+            @ApiResponse(responseCode = "204", description = "Equipo eliminado correctamente"),
             @ApiResponse(responseCode = "404", description = "Equipo no encontrado")
     })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteEquipo(
-            @PathVariable String id
+            @PathVariable Integer id
     ) {
         Equipo existingEquipo = equipoService.findById(id);
         if (existingEquipo != null) {
@@ -155,4 +164,3 @@ public class EquipoController {
         }
     }
 }
-
